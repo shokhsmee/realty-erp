@@ -11,6 +11,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Spinner } from "@/components/ui/misc";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
+import { FieldGroup, Field } from "@/components/record/RecordUI";
 import { DealWizard } from "@/features/shaxmatka/DealWizard";
 import { UnitPicker } from "@/features/shaxmatka/UnitPicker";
 
@@ -482,21 +483,22 @@ function SalesRail({ lead, canEdit, onInterest, onLinkDeal, onClearUnit }: {
         {sold ? (
           /* linked deal */
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-4">Bogʻlangan bitim</span>
-              <StatusPill tone={won ? "crit" : "info"}>{DEAL_STATE_L[lead.deal_state ?? ""] ?? lead.deal_state}</StatusPill>
-            </div>
-            <div className="text-[15px] font-bold text-ink">🏠 {lead.unit_number ?? "—"}</div>
-            {lead.deal_total && <div className="mt-1 font-mono tnum text-[15px] font-bold text-ink">{fmt(lead.deal_total)}</div>}
+            <FieldGroup title="Bogʻlangan bitim">
+              <Field l="Xonadon" v={lead.unit_number ?? "—"} link />
+              <Field l="Holat" v={<StatusPill tone={won ? "crit" : "info"}>{DEAL_STATE_L[lead.deal_state ?? ""] ?? lead.deal_state}</StatusPill>} />
+              {lead.deal_total && <Field l="Summa" v={fmt(lead.deal_total)} />}
+            </FieldGroup>
             <a href="/deals" className="mt-2 inline-block font-mono text-[11px] text-accent-ink hover:underline">Bitimlarga oʻtish →</a>
             {won && <div className="mt-2 rounded-sm border border-crit-line bg-crit-bg px-2 py-1 text-center font-mono text-[11px] font-semibold text-crit">✓ Yutuq — sotildi</div>}
           </div>
         ) : lead.unit_id ? (
           /* interested unit, no deal yet */
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-4">Qiziqqan xonadon</div>
-            <div className="text-[15px] font-bold text-ink">🏠 {lead.unit_number ?? `#${lead.unit_id}`}</div>
-            {unit && <div className="font-mono text-[11px] text-ink-3">{unit.rooms}x · {Math.round(Number(unit.total_m2))} m² · {fmt(unit.price)}</div>}
+            <FieldGroup title="Qiziqqan xonadon">
+              <Field l="Xonadon" v={lead.unit_number ?? `#${lead.unit_id}`} link />
+              {unit && <Field l="Xona / maydon" v={`${unit.rooms}x · ${Math.round(Number(unit.total_m2))} m²`} />}
+              {unit && <Field l="Narx" v={fmt(unit.price)} />}
+            </FieldGroup>
             {canEdit && (
               <div className="mt-3 space-y-1.5">
                 <Button size="sm" className="w-full justify-center" disabled={!unit} onClick={() => unit && setWizardUnit(unit)}>Sotuv / Bron rasmiylashtirish</Button>

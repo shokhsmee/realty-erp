@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
+import { StatusRibbon, SmartBtnStrip, SmartBtn, FieldGroup, Field } from "@/components/record/RecordUI";
 import { buildOfferHtml, buildReceiptHtml } from "@/features/deals/offer";
 import { DealWizard } from "@/features/shaxmatka/DealWizard";
 import { UnitPicker } from "@/features/shaxmatka/UnitPicker";
@@ -186,34 +187,20 @@ function DealForm({ dealId, onBack }: { dealId: number; onBack: () => void }) {
               <Button size="sm" variant="ghost" onClick={() => confirm("Bitim bekor qilinsinmi? Xonadon boʻshaydi.") && act.mutate("cancel")} disabled={act.isPending}>Bekor qilish</Button>
             )}
             {/* status ribbon (Odoo statusbar) */}
-            <div className="ml-auto flex items-center gap-0.5 text-[11px] font-semibold">
-              {deal.state === "cancelled" ? (
-                <StatusPill tone="crit">Bekor qilingan</StatusPill>
-              ) : FLOW.map((st, i) => {
-                const ci = FLOW.indexOf(deal.state);
-                const cur = i === ci;
-                const done = i < ci;
-                return (
-                  <span key={st} className="flex items-center gap-0.5">
-                    {i > 0 && <span className="text-ink-4">›</span>}
-                    <span className={`rounded px-2.5 py-1 ${cur ? "bg-accent text-white" : done ? "text-accent-ink" : "text-ink-4"}`}>
-                      {STATE_L[st]}
-                    </span>
-                  </span>
-                );
-              })}
+            <div className="ml-auto">
+              <StatusRibbon steps={FLOW.map((v) => ({ value: v, label: STATE_L[v] }))} current={deal.state} terminalLabel="Bekor qilingan" />
             </div>
           </div>
         </div>
 
         {/* smart buttons (Odoo statbuttons) */}
-        <div className="flex flex-wrap items-stretch border-b border-line px-3 py-2">
-          <SmartBtn active={false} onClick={() => setUnitOpen(true)} icon="🏠" big={deal.unit_number ?? "—"} label="Xonadon" sub="batafsil" />
+        <SmartBtnStrip>
+          <SmartBtn onClick={() => setUnitOpen(true)} icon="🏠" big={deal.unit_number ?? "—"} label="Xonadon" sub="batafsil" />
           <SmartBtn active={tab === "payments"} onClick={() => setTab("payments")} icon="₮" big={`${paidCount}/${deal.payments.length}`} label="Toʻlov jadvali" sub={fmt(collected)} />
           <SmartBtn active={tab === "receipts"} onClick={() => setTab("receipts")} icon="🧾" big={String(receipts?.length ?? 0)} label="Toʻlovlar (kvitansiya)" sub={fmt(collected)} />
           <SmartBtn active={tab === "contract"} onClick={() => setTab("contract")} icon="📄" big={String(contractCount)} label="Shartnomalar" sub={deal.contract_no ?? "—"} />
-          <SmartBtn active={false} onClick={openOffer} icon="📑" big="KP" label="Tijoriy taklif" sub="chop etish" />
-        </div>
+          <SmartBtn onClick={openOffer} icon="📑" big="KP" label="Tijoriy taklif" sub="chop etish" />
+        </SmartBtnStrip>
 
         {/* title block */}
         <div className="flex items-start justify-between px-5 py-4">
@@ -229,29 +216,29 @@ function DealForm({ dealId, onBack }: { dealId: number; onBack: () => void }) {
 
         {/* field groups */}
         <div className="grid gap-x-8 gap-y-5 px-5 pb-5 md:grid-cols-2">
-          <Group title="Mijoz">
-            <F l="F.I.Sh" v={deal.client_name ?? "—"} link />
-            <F l="Telefon" v={deal.client_phone ?? "—"} />
-            <F l="Masʼul" v={deal.manager_name ?? "—"} link />
-          </Group>
-          <Group title="Obyekt">
-            <F l="Majmua" v={deal.complex_name ?? "—"} link />
-            <F l="Xonadon" v={deal.unit_number ?? "—"} link />
-            <F l="Xonadon narxi" v={fmt(deal.price)} />
-          </Group>
-          <Group title="Toʻlov shartlari">
-            <F l="Turi" v={DT_L[deal.deal_type] ?? deal.deal_type} />
+          <FieldGroup title="Mijoz">
+            <Field l="F.I.Sh" v={deal.client_name ?? "—"} link />
+            <Field l="Telefon" v={deal.client_phone ?? "—"} />
+            <Field l="Masʼul" v={deal.manager_name ?? "—"} link />
+          </FieldGroup>
+          <FieldGroup title="Obyekt">
+            <Field l="Majmua" v={deal.complex_name ?? "—"} link />
+            <Field l="Xonadon" v={deal.unit_number ?? "—"} link />
+            <Field l="Xonadon narxi" v={fmt(deal.price)} />
+          </FieldGroup>
+          <FieldGroup title="Toʻlov shartlari">
+            <Field l="Turi" v={DT_L[deal.deal_type] ?? deal.deal_type} />
             {(Number(deal.discount_percent) > 0 || Number(deal.discount_amount) > 0) &&
-              <F l="Chegirma" v={`${Number(deal.discount_percent)}%${Number(deal.discount_amount) > 0 ? " + " + fmt(deal.discount_amount) : ""}`} tone="ok" />}
-            {deal.deal_type !== "cash" && <F l="Boshlangʻich toʻlov" v={`${Number(deal.down_payment_percent)}%`} />}
-            {deal.deal_type === "installment" && <F l="Muddat / ustama" v={`${deal.term_months} oy · +${Number(deal.markup_percent)}%`} />}
-          </Group>
-          <Group title="Holat">
-            <F l="Bosqich" v={STATE_L[deal.state] ?? deal.state} />
-            <F l="Yaratilgan" v={new Date(deal.created_at).toLocaleDateString()} />
-            {deal.signed_at && <F l="Imzolangan" v={new Date(deal.signed_at).toLocaleDateString()} />}
-            {deal.state === "reserved" && deal.booking_expires_at && <F l="Bron muddati" v={new Date(deal.booking_expires_at).toLocaleDateString()} tone="warn" />}
-          </Group>
+              <Field l="Chegirma" v={`${Number(deal.discount_percent)}%${Number(deal.discount_amount) > 0 ? " + " + fmt(deal.discount_amount) : ""}`} tone="ok" />}
+            {deal.deal_type !== "cash" && <Field l="Boshlangʻich toʻlov" v={`${Number(deal.down_payment_percent)}%`} />}
+            {deal.deal_type === "installment" && <Field l="Muddat / ustama" v={`${deal.term_months} oy · +${Number(deal.markup_percent)}%`} />}
+          </FieldGroup>
+          <FieldGroup title="Holat">
+            <Field l="Bosqich" v={STATE_L[deal.state] ?? deal.state} />
+            <Field l="Yaratilgan" v={new Date(deal.created_at).toLocaleDateString()} />
+            {deal.signed_at && <Field l="Imzolangan" v={new Date(deal.signed_at).toLocaleDateString()} />}
+            {deal.state === "reserved" && deal.booking_expires_at && <Field l="Bron muddati" v={new Date(deal.booking_expires_at).toLocaleDateString()} tone="warn" />}
+          </FieldGroup>
         </div>
 
         {/* notebook */}
@@ -341,13 +328,13 @@ function ReceiptModal({ receipt, deal, onClose }: { receipt: Receipt; deal: Deal
             <div className="font-mono tnum text-2xl font-bold text-ok">{fmt(receipt.amount)}</div>
           </div>
           <div className="space-y-1.5">
-            <F l="Sana" v={new Date(receipt.paid_at).toLocaleString()} />
-            <F l="Mijoz" v={deal.client_name ?? "—"} link />
-            <F l="Obyekt" v={`${deal.complex_name ?? ""} · ${deal.unit_number ?? "—"}`} />
-            <F l="Bitim" v={`#${deal.id}${deal.contract_no ? " · " + deal.contract_no : ""}`} />
-            <F l="Toʻlov usuli" v={receipt.method_name ?? "—"} />
-            <F l="Qoplaydi" v={receipt.covers ?? "—"} />
-            <F l="Qabul qildi" v={receipt.author_name ?? "—"} />
+            <Field l="Sana" v={new Date(receipt.paid_at).toLocaleString()} />
+            <Field l="Mijoz" v={deal.client_name ?? "—"} link />
+            <Field l="Obyekt" v={`${deal.complex_name ?? ""} · ${deal.unit_number ?? "—"}`} />
+            <Field l="Bitim" v={`#${deal.id}${deal.contract_no ? " · " + deal.contract_no : ""}`} />
+            <Field l="Toʻlov usuli" v={receipt.method_name ?? "—"} />
+            <Field l="Qoplaydi" v={receipt.covers ?? "—"} />
+            <Field l="Qabul qildi" v={receipt.author_name ?? "—"} />
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">
@@ -355,38 +342,6 @@ function ReceiptModal({ receipt, deal, onClose }: { receipt: Receipt; deal: Deal
           <Button size="sm" variant="secondary" onClick={print}>🖨 Chop etish / PDF</Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ------------------------------ smart button (Odoo statbutton) ------------------------------ */
-function SmartBtn({ active, onClick, icon, big, label, sub }: { active: boolean; onClick: () => void; icon: string; big: string; label: string; sub: string }) {
-  return (
-    <button onClick={onClick}
-      className={`group flex items-center gap-2.5 border-l border-line px-3.5 py-1 text-left transition first:border-l-0 hover:bg-surface-2 ${active ? "bg-accent-bg" : ""}`}>
-      <span className={`text-[18px] leading-none ${active ? "" : "opacity-80"}`}>{icon}</span>
-      <span className="min-w-0 leading-tight">
-        <span className="block font-mono tnum text-[14px] font-bold text-ink">{big}</span>
-        <span className="block text-[11px] font-semibold text-accent-ink">{label}</span>
-        <span className="block truncate font-mono text-[9.5px] text-ink-4">{sub}</span>
-      </span>
-    </button>
-  );
-}
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-2 border-b border-line pb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent-ink">{title}</div>
-      <div className="space-y-1.5">{children}</div>
-    </div>
-  );
-}
-function F({ l, v, tone, link }: { l: string; v: string; tone?: "ok" | "warn"; link?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-line-2 pb-1 text-[13px]">
-      <span className="text-ink-3">{l}</span>
-      <span className={`text-right ${link ? "font-semibold text-accent-ink" : "font-mono"} ${tone === "ok" ? "text-ok" : tone === "warn" ? "text-warn" : link ? "" : "text-ink"}`}>{v}</span>
     </div>
   );
 }
@@ -713,12 +668,12 @@ function UnitModal({ unitId, complexName, onClose }: { unitId: number; complexNa
               </div>
             )}
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-              <F l="Xonalar" v={`${unit.rooms}-xona`} />
-              <F l="Holat" v={unit.status} />
-              <F l="Umumiy" v={`${Number(unit.total_m2).toFixed(1)} m²`} />
-              <F l="Billable" v={`${Number(unit.billable_m2).toFixed(1)} m²`} />
-              {unit.view && <F l="Manzara" v={unit.view} />}
-              {unit.decoration && <F l="Tamir" v={unit.decoration} />}
+              <Field l="Xonalar" v={`${unit.rooms}-xona`} />
+              <Field l="Holat" v={unit.status} />
+              <Field l="Umumiy" v={`${Number(unit.total_m2).toFixed(1)} m²`} />
+              <Field l="Billable" v={`${Number(unit.billable_m2).toFixed(1)} m²`} />
+              {unit.view && <Field l="Manzara" v={unit.view} />}
+              {unit.decoration && <Field l="Tamir" v={unit.decoration} />}
             </div>
             <div>
               <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">Maydonlar</div>
